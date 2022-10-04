@@ -11,9 +11,10 @@ import {
   Global,
 } from "./styles";
 
-const ImagesZoom = ({ images, onClose }) => {
+const ImagesZoom = ({ image, onClose }) => {
   const [currentState, setCurrentSlide] = useState(0);
 
+  // const Slide = <Slick.default></Slick.default>;
   return (
     <Overlay>
       <Global />
@@ -23,23 +24,28 @@ const ImagesZoom = ({ images, onClose }) => {
       </Header>
       <SlickWrapper>
         <div>
-          <Slick
-            initialSlide={0}
-            afterChange={(slide) => setCurrentSlide(slide)}
-            infinite
-            arrows={false}
-            slidesToShow={1}
-            slidesToScroll={1}
-          >
-            {images.map((image) => (
-              <ImgWrapper key={image.src}>
-                <img src={image.src} alt={image.src} />
-              </ImgWrapper>
-            ))}
-          </Slick>
+          {
+            <Slick.default
+              initialSlide={0}
+              afterChange={(slide) => setCurrentSlide(slide)}
+              infinite
+              arrows={false}
+              slidesToShow={1}
+              slidesToScroll={1}
+            >
+              {image.map((image) => (
+                <ImgWrapper key={image.src}>
+                  <img
+                    src={`http://localhost:3065/${image.src}`}
+                    alt={image.src}
+                  />
+                </ImgWrapper>
+              ))}
+            </Slick.default>
+          }
           <Indicator>
             <div>
-              {currentState + 1} / {images.length}
+              {currentState + 1} / {image.length}
             </div>
           </Indicator>
         </div>
@@ -49,7 +55,7 @@ const ImagesZoom = ({ images, onClose }) => {
 };
 
 ImagesZoom.propTypes = {
-  images: propTypes.arrayOf(propTypes.object).isRequired,
+  image: propTypes.arrayOf(propTypes.object),
   onClose: propTypes.func.isRequired,
 };
 export default ImagesZoom;

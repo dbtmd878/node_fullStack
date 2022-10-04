@@ -24,6 +24,9 @@ import {
   REMOVE_POST_FAILURE,
   REMOVE_POST_REQUEST,
   REMOVE_POST_SUCCESS,
+  RETWEET_FAILURE,
+  RETWEET_REQUEST,
+  RETWEET_SUCCESS,
   UNLIKE_POST_FAILURE,
   UNLIKE_POST_REQUEST,
   UNLIKE_POST_SUCCESS,
@@ -32,15 +35,14 @@ import {
   UPLOAD_IMAGES_SUCCESS,
 } from "../reducers/post";
 import { ADD_POST_TO_ME, REMOVE_POST_OF_ME } from "../reducers/user";
-import shortid from "shortid";
 
-function loadPostAPI() {
-  return axios.get("/posts");
+function loadPostAPI(lastId) {
+  return axios.get(`/posts?lastId=${lastId || 0}&limit=10&offset=10`);
 }
 
-function* loadpost() {
+function* loadpost(action) {
   try {
-    const result = yield call(loadPostAPI);
+    const result = yield call(loadPostAPI, action.lastId);
     yield put({
       type: LOAD_POST_SUCCESS,
       data: result.data,
@@ -54,7 +56,7 @@ function* loadpost() {
 }
 
 function addPostAPI(data) {
-  return axios.post("/post", { content: data });
+  return axios.post("/post", data);
 }
 
 function* addpost(action) {
@@ -134,7 +136,6 @@ function* addcomment(action) {
       data: result.data,
     });
   } catch (err) {
-    console.error(err);
     yield put({
       type: ADD_COMMENT_FAILURE,
       error: err.response.data,
@@ -161,12 +162,12 @@ function* likepost(data) {
   }
 }
 
-function unlikePostApi(data) {
-  return axios.delete(`/post/${data.postId}/like`);
+function unlikePostApi(postId) {
+  return axios.delete(`/post/${postId}/like`);
 }
-function* unlikepost(data) {
+function* unlikepost(action) {
   try {
-    const result = yield call(unlikePostApi, data);
+    const result = yield call(unlikePostApi, action.postId);
     yield put({
       type: UNLIKE_POST_SUCCESS,
       data: result.data,
@@ -175,6 +176,23 @@ function* unlikepost(data) {
     yield put({
       type: UNLIKE_POST_FAILURE,
       error: error.response.data,
+    });
+  }
+}
+function retweetApi(data) {
+  return axios.post(`/post/${data}/retweet`);
+}
+function* retweet(action) {
+  try {
+    const result = yield call(retweetApi, action.data);
+    yield put({
+      type: RETWEET_SUCCESS,
+      data: result.data,
+    });
+  } catch (err) {
+    yield put({
+      type: RETWEET_FAILURE,
+      error: err.response.data,
     });
   }
 }
@@ -204,6 +222,9 @@ function* watchLikePost() {
 function* watchUnlikePost() {
   yield takeLatest(UNLIKE_POST_REQUEST, unlikepost);
 }
+function* watchRetweet() {
+  yield takeLatest(RETWEET_REQUEST, retweet);
+}
 
 export default function* postSaga() {
   yield all([
@@ -214,5 +235,6 @@ export default function* postSaga() {
     fork(watchAddComment),
     fork(watchUnlikePost),
     fork(watchLikePost),
+    fork(watchRetweet),
   ]);
 }

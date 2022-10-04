@@ -32,6 +32,10 @@ export const initialState = {
   unlikePostLoading: false,
   unlikePostDone: false,
   unlikePostError: null,
+
+  retweetLoading: false,
+  retweetDone: false,
+  retweetError: null,
 };
 
 export const addPost = (data) => ({
@@ -74,6 +78,10 @@ export const UNLIKE_POST_REQUEST = "UNLIKE_POST_REQUEST";
 export const UNLIKE_POST_SUCCESS = "UNLIKE_POST_SUCCESS";
 export const UNLIKE_POST_FAILURE = "UNLIKE_POST_FAILURE";
 
+export const RETWEET_REQUEST = "RETWEET_REQUEST";
+export const RETWEET_SUCCESS = "RETWEET_SUCCESS";
+export const RETWEET_FAILURE = "RETWEET_FAILURE";
+
 const reducer = (state = initialState, action) => {
   return produce(state, (draft) => {
     switch (action.type) {
@@ -83,10 +91,10 @@ const reducer = (state = initialState, action) => {
         draft.loadPostError = null;
         break;
       case LOAD_POST_SUCCESS:
-        draft.mainPosts = action.data.concat(draft.mainPosts);
         draft.loadPostLoading = false;
         draft.loadPostDone = true;
-        draft.hasMorePosts = draft.mainPosts.length < 50;
+        draft.mainPosts = draft.mainPosts.concat(action.data);
+        draft.hasMorePosts = action.data.length === 10;
         break;
       case LOAD_POST_FAILURE:
         draft.loadPostLoading = false;
@@ -102,12 +110,12 @@ const reducer = (state = initialState, action) => {
         draft.mainPosts.unshift(action.data);
         draft.addPostLoading = false;
         draft.addPostDone = true;
+        draft.imagePath = [];
         break;
       case ADD_POST_FAILURE:
         draft.addPostLoading = false;
         draft.addPostError = action.error;
         break;
-
       case UPLOAD_IMAGES_REQUEST:
         draft.uploadImagesLoading = true;
         draft.uploadImagesDone = false;
@@ -122,7 +130,6 @@ const reducer = (state = initialState, action) => {
         draft.uploadImagesLoading = false;
         draft.uploadImagesError = action.error;
         break;
-
       case REMOVE_POST_REQUEST:
         draft.removePostLoading = true;
         draft.removePostDone = false;
@@ -172,7 +179,6 @@ const reducer = (state = initialState, action) => {
         draft.addCommentLoading = false;
         draft.addCommentError = action.error;
         break;
-
       case LIKE_POST_REQUEST:
         draft.likePostLoading = true;
         draft.likePostDone = false;
@@ -207,6 +213,20 @@ const reducer = (state = initialState, action) => {
         draft.unlikePostError = action.error;
         break;
 
+      case RETWEET_REQUEST:
+        draft.retweetLoading = true;
+        draft.retweetDone = false;
+        draft.retweetError = null;
+        break;
+      case RETWEET_SUCCESS:
+        draft.retweetLoading = false;
+        draft.retweetDone = true;
+        draft.mainPosts.unshift(action.data);
+        break;
+      case RETWEET_FAILURE:
+        draft.retweetLoading = false;
+        draft.retweetError = action.error;
+        break;
       default:
         break;
     }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Avatar, Button, Card, Comment, List, Popover } from "antd";
 import {
   EllipsisOutlined,
@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   LIKE_POST_REQUEST,
   REMOVE_POST_REQUEST,
+  RETWEET_REQUEST,
   UNLIKE_POST_REQUEST,
 } from "../reducers/post";
 
@@ -23,40 +24,62 @@ const PostCard = ({ post }) => {
   const id = useSelector((state) => state.user.me?.id);
   const { removePostLoading } = useSelector((state) => state.post);
   const dispatch = useDispatch();
+  const liked = post.Likers.find((v) => v.id === id);
 
   const onLike = useCallback(() => {
+    if (!id) {
+      return alert("로그인을 하지 않았습니다.");
+    }
     dispatch({
       type: LIKE_POST_REQUEST,
       postId: post.id,
     });
-  }, []);
+  }, [id]);
 
   const onUnLike = useCallback(() => {
+    if (!id) {
+      return alert("로그인을 하지 않았습니다.");
+    }
     dispatch({
       type: UNLIKE_POST_REQUEST,
       postId: post.id,
     });
-  }, []);
+  }, [id]);
 
   const [commentForOpened, setCommentForOpened] = useState(false);
 
   const onRemovePost = useCallback(() => {
+    if (!id) {
+      return alert("로그인을 하지 않았습니다.");
+    }
     dispatch({
       type: REMOVE_POST_REQUEST,
       data: post.id,
     });
-  }, []);
+  }, [id]);
 
   const onToggleComment = useCallback(() => {
+    if (!id) {
+      return alert("로그인을 하지 않았습니다.");
+    }
     setCommentForOpened((prev) => !prev);
   }, []);
 
-  const liked = post.Likers.find((v) => v.id === id);
+  const onRetweet = useCallback(() => {
+    if (!id) {
+      return alert("로그인을 하지 않았습니다.");
+    }
+    return dispatch({
+      type: RETWEET_REQUEST,
+      data: post.id,
+    });
+  }, [id]);
+
   return (
     <div style={{ marginBottom: "20px" }}>
       <Card
         actions={[
-          <RetweetOutlined key="retweet" />,
+          <RetweetOutlined key="retweet" onClick={onRetweet} />,
           liked ? (
             <HeartTwoTone
               twoToneColor="#eb2f96"
@@ -91,15 +114,35 @@ const PostCard = ({ post }) => {
             <EllipsisOutlined />
           </Popover>,
         ]}
+        title={
+          post.RetweetId ? `${post.User.nickname}님이 리트윗하셨습니다.` : null
+        }
         cover={post.Images[0] && <PostImages images={post.Images} />}
         extra={id !== post.UserId && id && <FollowButton post={post} />}
       >
-        <Card.Meta
-          avatar={<Avatar>{post.User.nickname[0]}</Avatar>}
-          description={<PostCardCotent postData={post.content} />}
-          title={post.User.nickname}
-        />
+        {post.RetweetId && post.Retweet ? (
+          <Card
+            cover={
+              post.Retweet.Images[0] && (
+                <PostImages images={post.Retweet.Images} />
+              )
+            }
+          >
+            <Card.Meta
+              avatar={<Avatar>{post.User.nickname[0]}</Avatar>}
+              description={<PostCardCotent postData={post.Retweet.content} />}
+              title={post.Retweet.User.nickname}
+            />
+          </Card>
+        ) : (
+          <Card.Meta
+            avatar={<Avatar>{post.User.nickname[0]}</Avatar>}
+            description={<PostCardCotent postData={post.content} />}
+            title={post.User.nickname}
+          />
+        )}
       </Card>
+
       {commentForOpened && (
         <div>
           <CommentForm post={post} />
@@ -141,6 +184,8 @@ PostCard.propTypes = {
     ),
     Likers: propTypes.arrayOf(propTypes.object),
     Commnets: propTypes.arrayOf(propTypes.object),
+    RetweetId: propTypes.number,
+    Retweet: propTypes.objectOf(propTypes.any),
   }),
 };
 
