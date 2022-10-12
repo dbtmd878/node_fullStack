@@ -1,4 +1,4 @@
-import { fork, all, takeLatest, delay, put, call } from "redux-saga/effects";
+import { fork, all, takeLatest, put, call } from "redux-saga/effects";
 import axios from "axios";
 import {
   CHANGE_NICKNAME_FAILURE,
@@ -16,6 +16,9 @@ import {
   LOAD_MY_INFO_FAILURE,
   LOAD_MY_INFO_REQUEST,
   LOAD_MY_INFO_SUCCESS,
+  LOAD_USER_FAILURE,
+  LOAD_USER_REQUEST,
+  LOAD_USER_SUCCESS,
   LOG_IN_FAILURE,
   LOG_IN_REQUEST,
   LOG_IN_SUCCESS,
@@ -56,7 +59,7 @@ function logOutAPI() {
   return axios.post("/user/logout");
 }
 
-function* logout(action) {
+function* logout() {
   try {
     yield call(logOutAPI);
 
@@ -78,7 +81,6 @@ function signUpAPI(data) {
 function* signup(action) {
   try {
     const result = yield call(signUpAPI, action.data);
-    console.log(result);
 
     yield put({
       type: SIGN_UP_SUCCESS,
@@ -131,14 +133,33 @@ function* unfollow(action) {
   }
 }
 
-function loadUserAPI() {
-  return axios.get("/user");
+function loadUserAPI(userId) {
+  return axios.get(`/user/${userId}`);
 }
 
 function* loadUser(action) {
   try {
     const result = yield call(loadUserAPI, action.data);
 
+    yield put({
+      type: LOAD_USER_SUCCESS,
+      data: result.data,
+    });
+  } catch (err) {
+    yield put({
+      type: LOAD_USER_FAILURE,
+      error: err.response.data,
+    });
+  }
+}
+
+function loadMyInfoAPI() {
+  return axios.get("/user");
+}
+
+function* loadMyInfo() {
+  try {
+    const result = yield call(loadMyInfoAPI);
     yield put({
       type: LOAD_MY_INFO_SUCCESS,
       data: result.data,
@@ -178,6 +199,7 @@ function followersAPI(data) {
 function* followers(action) {
   try {
     const result = yield call(followersAPI, action.data);
+
     yield put({
       type: LOAD_FOLLOWERS_SUCCESS,
       data: result.data,
@@ -228,7 +250,10 @@ function* removefollower(action) {
 }
 
 function* watchLoadUser() {
-  yield takeLatest(LOAD_MY_INFO_REQUEST, loadUser);
+  yield takeLatest(LOAD_USER_REQUEST, loadUser);
+}
+function* watchLoadMyInfo() {
+  yield takeLatest(LOAD_MY_INFO_REQUEST, loadMyInfo);
 }
 function* watchLogIn() {
   yield takeLatest(LOG_IN_REQUEST, login);
@@ -265,6 +290,7 @@ function* watchRemoveFollower() {
 export default function* userSaga() {
   yield all([
     fork(watchLoadUser),
+    fork(watchLoadMyInfo),
     fork(watchLogIn),
     fork(watchLogOut),
     fork(watchSignUp),

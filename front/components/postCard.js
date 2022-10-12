@@ -63,7 +63,7 @@ const PostCard = ({ post }) => {
       return alert("로그인을 하지 않았습니다.");
     }
     setCommentForOpened((prev) => !prev);
-  }, []);
+  }, [id]);
 
   const onRetweet = useCallback(() => {
     if (!id) {

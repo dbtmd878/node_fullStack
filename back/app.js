@@ -2,6 +2,7 @@ const express = require("express");
 const postRouter = require("./routes/post");
 const postsRouter = require("./routes/posts");
 const userRouter = require("./routes/user");
+const hashtagRouter = require("./routes/hashtag");
 const db = require("./models");
 const passportConfig = require("./passport");
 const session = require("express-session");
@@ -57,6 +58,7 @@ app.use(passport.session());
 app.use("/posts", postsRouter);
 app.use("/post", postRouter);
 app.use("/user", userRouter);
+app.use("/hashtag", hashtagRouter);
 
 // 에러처리 미들웨어(next())는 내부적으로 이 위치에 존재하게 된다.
 // 다만 직접 적어주지 않아도 알아서 실행이 된다.

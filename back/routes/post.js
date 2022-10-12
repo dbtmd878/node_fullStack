@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { isLoggedIn, isLoggedInin } = require("../routes/middlewares");
 const { Post, Comment, Image, User, Hashtag } = require("../models");
 
 try {
@@ -24,7 +25,7 @@ const upload = multer({
   }),
 });
 
-router.post("/", upload.none(), async (req, res, next) => {
+router.post("/", isLoggedIn, upload.none(), async (req, res, next) => {
   try {
     const post = await Post.create({
       content: req.body.content,
@@ -90,14 +91,19 @@ router.post("/", upload.none(), async (req, res, next) => {
   }
 });
 
-router.post("/images", upload.array("image"), async (req, res, next) => {
-  try {
-    res.status(200).json(req.files.map((file) => file.filename));
-  } catch (error) {
-    console.error(error);
-    next(error);
+router.post(
+  "/images",
+  isLoggedIn,
+  upload.array("image"),
+  async (req, res, next) => {
+    try {
+      res.status(200).json(req.files.map((file) => file.filename));
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
   }
-});
+);
 
 router.post("/:postId/comment", async (req, res, next) => {
   try {
@@ -130,7 +136,66 @@ router.post("/:postId/comment", async (req, res, next) => {
   }
 });
 
-router.post("/:postId/retweet", async (req, res, next) => {
+router.get("/:postId", async (req, res, next) => {
+  try {
+    const post = await Post.findOne({
+      where: { id: req.params.postId },
+    });
+    if (!post) {
+      return res.status(404).send("게시글을 찾지 못하였습니다.");
+    }
+
+    const fullPost = await Post.findOne({
+      where: { id: post.id },
+      attributes: {
+        exclude: ["createdAt", "updatedAt"],
+      },
+      include: [
+        {
+          model: Post,
+          as: "Retweet",
+          include: [
+            {
+              model: User,
+              attributes: ["id", "nickname"],
+            },
+            {
+              model: Image,
+            },
+          ],
+        },
+        {
+          model: User,
+          attributes: ["id", "nickname"],
+        },
+        {
+          model: User,
+          as: "Likers",
+          attributes: ["id", "nickname"],
+        },
+        {
+          model: Image,
+        },
+        {
+          model: Comment,
+          include: [
+            {
+              model: User,
+              attributes: ["id", "nickname"],
+            },
+          ],
+        },
+      ],
+    });
+
+    res.status(200).json(fullPost);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.post("/:postId/retweet", isLoggedIn, async (req, res, next) => {
   try {
     const post = await Post.findOne({
       where: { id: req.params.postId },
@@ -209,7 +274,7 @@ router.post("/:postId/retweet", async (req, res, next) => {
   }
 });
 
-router.patch("/:postId/like", async (req, res, next) => {
+router.patch("/:postId/like", isLoggedIn, async (req, res, next) => {
   try {
     const post = await Post.findOne({ where: { id: req.params.postId } });
 
@@ -225,7 +290,7 @@ router.patch("/:postId/like", async (req, res, next) => {
   }
 });
 
-router.delete("/:postId/like", async (req, res, next) => {
+router.delete("/:postId/like", isLoggedIn, async (req, res, next) => {
   try {
     const post = await Post.findOne({ where: { id: req.params.postId } });
 
@@ -241,7 +306,7 @@ router.delete("/:postId/like", async (req, res, next) => {
   }
 });
 
-router.delete("/:postId", async (req, res, next) => {
+router.delete("/:postId", isLoggedIn, async (req, res, next) => {
   try {
     await Post.destroy({
       where: {

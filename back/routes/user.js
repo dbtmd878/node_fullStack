@@ -1,10 +1,11 @@
 const express = require("express");
-const { User, Post } = require("../models");
+const { Op } = require("sequelize");
+const { User, Post, Image, Comment } = require("../models");
 const bcrypt = require("bcrypt");
 const passport = require("passport");
 
 const router = express.Router();
-const { isLoggedIn } = require("./middlewares");
+const { isLoggedIn, isNotLoggedIn } = require("./middlewares");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -20,6 +21,7 @@ router.get("/", async (req, res, next) => {
           { model: User, as: "Followers", attributes: ["id"] },
         ],
       });
+
       res.status(200).json(fullUserWithoutPasswordUser);
     } else {
       res.status(200).json(null);
@@ -30,7 +32,35 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.post("/login", (req, res, next) => {
+router.get("/:userId", async (req, res, next) => {
+  try {
+    const fullUserWithoutPasswordUser = await User.findOne({
+      where: { id: req.params.userId },
+      attributes: {
+        exclude: ["password"],
+      },
+      include: [
+        { model: Post, attributes: ["id"] },
+        { model: User, as: "Followings", attributes: ["id"] },
+        { model: User, as: "Followers", attributes: ["id"] },
+      ],
+    });
+    if (fullUserWithoutPasswordUser) {
+      const data = fullUserWithoutPasswordUser.toJSON();
+      data.Posts = data.Posts.length;
+      data.Followers = data.Followers.length;
+      data.Followings = data.Followings.length;
+      res.status(200).json(data);
+    } else {
+      res.status(404).json(null);
+    }
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.post("/login", isNotLoggedIn, (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       console.error(err);
@@ -74,7 +104,7 @@ router.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", isNotLoggedIn, async (req, res, next) => {
   try {
     const exUser = await User.findOne({
       where: {
@@ -93,7 +123,6 @@ router.post("/", async (req, res, next) => {
       nickname: req.body.nickname,
       password: hashedPassword,
     });
-    // res.setHeader("Access-Control-Allow-Origin", "http://localhost:3060");
 
     res.status(200).send("ok");
   } catch (error) {
@@ -102,7 +131,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.patch("/nickname", async (req, res, next) => {
+router.patch("/nickname", isLoggedIn, async (req, res, next) => {
   try {
     await User.update(
       {
@@ -119,7 +148,7 @@ router.patch("/nickname", async (req, res, next) => {
   }
 });
 
-router.patch("/:userId/follow", async (req, res, next) => {
+router.patch("/:userId/follow", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.params.userId } });
     if (!user) {
@@ -133,7 +162,7 @@ router.patch("/:userId/follow", async (req, res, next) => {
   }
 });
 
-router.delete("/:userId/unfollow", async (req, res, next) => {
+router.delete("/:userId/unfollow", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.params.userId } });
     if (!user) {
@@ -147,7 +176,7 @@ router.delete("/:userId/unfollow", async (req, res, next) => {
   }
 });
 
-router.delete("/follower/:userId", async (req, res, next) => {
+router.delete("/follower/:userId", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.user.id } });
     if (!user) {
@@ -161,13 +190,14 @@ router.delete("/follower/:userId", async (req, res, next) => {
   }
 });
 
-router.get("/followers", async (req, res, next) => {
+router.get("/followers", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.user.id } });
     if (!user) {
       return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
     }
     const followers = await user.getFollowers();
+
     res.status(200).json(followers);
   } catch (error) {
     console.error(error);
@@ -175,13 +205,14 @@ router.get("/followers", async (req, res, next) => {
   }
 });
 
-router.get("/followings", async (req, res, next) => {
+router.get("/followings", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.user.id } });
     if (!user) {
       return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
     }
     const followings = await user.getFollowings();
+
     res.status(200).json(followings);
   } catch (error) {
     console.error(error);
@@ -189,12 +220,67 @@ router.get("/followings", async (req, res, next) => {
   }
 });
 
-router.post("/logout", async (req, res, next) => {
+router.get("/:userId/posts", async (req, res, next) => {
+  try {
+    const where = { UserId: req.params.userId };
+    if (parseInt(req.query.lastId, 10)) {
+      where.id = { [Op.lt]: parseInt(req.query.lastId, 10) };
+    }
+    const posts = await Post.findAll({
+      where,
+      limit: 10,
+      order: [
+        ["createdAt", "DESC"],
+        [Comment, "createdAt", "DESC"],
+      ],
+      include: [
+        {
+          model: User,
+          attributes: ["id", "nickname"],
+        },
+        {
+          model: Image,
+        },
+        {
+          model: Comment,
+          include: [
+            {
+              model: User,
+              attributes: ["id", "nickname"],
+              order: [["createdAt", "DESC"]],
+            },
+          ],
+        },
+        {
+          model: User,
+          as: "Likers",
+          attributes: ["id"],
+        },
+        {
+          model: Post,
+          as: "Retweet",
+          include: [
+            { model: User, attributes: ["id", "nickname"] },
+            {
+              model: Image,
+            },
+          ],
+        },
+      ],
+    });
+
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.post("/logout", isLoggedIn, async (req, res, next) => {
   req.logout((err) => {
     if (err) {
       return next(err);
     }
-
     res.send("ok");
   });
 });

@@ -5,6 +5,10 @@ export const initialState = {
   loadMyInfoDone: false,
   loadMyInfoError: null,
 
+  loadUserRequest: false,
+  loadUserDone: false,
+  loadUserError: null,
+
   logInLoading: false, // 로그인 시도
   logInDone: false, // 로그인 상태
   logInError: null, // 로그아웃 에러
@@ -40,6 +44,7 @@ export const initialState = {
   loadfollowersError: null,
 
   me: null,
+  userInfo: null,
   singUpData: {},
   loginData: {},
 };
@@ -59,6 +64,10 @@ export const logoutRequestAction = () => {
 export const LOAD_MY_INFO_REQUEST = "LOAD_MY_INFO_REQUEST";
 export const LOAD_MY_INFO_SUCCESS = "LOAD_MY_INFO_SUCCESS";
 export const LOAD_MY_INFO_FAILURE = "LOAD_MY_INFO_FAILURE";
+
+export const LOAD_USER_REQUEST = "LOAD_USER_REQUEST";
+export const LOAD_USER_SUCCESS = "LOAD_USER_SUCCESS";
+export const LOAD_USER_FAILURE = "LOAD_USER_FAILURE";
 
 export const LOG_IN_REQUEST = "LOG_IN_REQUEST ";
 export const LOG_IN_SUCCESS = "LOG_IN_SUCCESS";
@@ -88,9 +97,9 @@ export const REMOVE_FOLLOWER_REQUEST = "REMOVE_FOLLOWER_REQUEST";
 export const REMOVE_FOLLOWER_SUCCESS = "REMOVE_FOLLOWER_SUCCESS";
 export const REMOVE_FOLLOWER_FAILURE = "REMOVE_FOLLOWER_FAILURE";
 
-export const LOAD_FOLLOWERS_REQUEST = "LOAD_FOLLOWERS_REQUEST ";
-export const LOAD_FOLLOWERS_SUCCESS = "LOAD_FOLLOWERS_SUCCESS ";
-export const LOAD_FOLLOWERS_FAILURE = "LOAD_FOLLOWERS_FAILURE ";
+export const LOAD_FOLLOWERS_REQUEST = "LOAD_FOLLOWERS_REQUEST";
+export const LOAD_FOLLOWERS_SUCCESS = "LOAD_FOLLOWERS_SUCCESS";
+export const LOAD_FOLLOWERS_FAILURE = "LOAD_FOLLOWERS_FAILURE";
 
 export const LOAD_FOLLOWINGS_REQUEST = "LOAD_FOLLOWINGS_REQUEST";
 export const LOAD_FOLLOWINGS_SUCCESS = "LOAD_FOLLOWINGS_SUCCESS";
@@ -115,6 +124,21 @@ const reducer = (state = initialState, action) => {
       case LOAD_MY_INFO_FAILURE:
         draft.loadMyInfoRequest = false;
         draft.loadMyInfoError = action.error;
+        break;
+
+      case LOAD_USER_REQUEST:
+        draft.loadUserRequest = true;
+        draft.loadUserDone = false;
+        draft.loadUserError = null;
+        break;
+      case LOAD_USER_SUCCESS:
+        draft.loadUserRequest = false;
+        draft.userInfo = action.data;
+        draft.loadUserDone = true;
+        break;
+      case LOAD_USER_FAILURE:
+        draft.loadUserRequest = false;
+        draft.loadUserError = action.error;
         break;
       case LOG_IN_REQUEST:
         draft.logInLoading = true;

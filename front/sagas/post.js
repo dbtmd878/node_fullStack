@@ -1,12 +1,4 @@
-import {
-  all,
-  put,
-  delay,
-  takeLatest,
-  fork,
-  throttle,
-  call,
-} from "redux-saga/effects";
+import { all, put, takeLatest, fork, throttle, call } from "redux-saga/effects";
 import axios from "axios";
 import {
   ADD_COMMENT_FAILURE,
@@ -19,7 +11,7 @@ import {
   LIKE_POST_REQUEST,
   LIKE_POST_SUCCESS,
   LOAD_POST_FAILURE,
-  LOAD_POST_REQUEST,
+  LOAD_POSTS_REQUEST,
   LOAD_POST_SUCCESS,
   REMOVE_POST_FAILURE,
   REMOVE_POST_REQUEST,
@@ -33,24 +25,97 @@ import {
   UPLOAD_IMAGES_FAILURE,
   UPLOAD_IMAGES_REQUEST,
   UPLOAD_IMAGES_SUCCESS,
+  LOAD_POSTS_FAILURE,
+  LOAD_POST_REQUEST,
+  LOAD_POSTS_SUCCESS,
+  LOAD_USER_POSTS_REQUEST,
+  LOAD_HASHTAG_POSTS_REQUEST,
+  LOAD_USER_POSTS_SUCCESS,
+  LOAD_USER_POSTS_FAILURE,
+  LOAD_HASHTAG_POSTS_SUCCESS,
+  LOAD_HASHTAG_POSTS_FAILURE,
 } from "../reducers/post";
 import { ADD_POST_TO_ME, REMOVE_POST_OF_ME } from "../reducers/user";
 
-function loadPostAPI(lastId) {
+function loadPostsAPI(lastId) {
   return axios.get(`/posts?lastId=${lastId || 0}&limit=10&offset=10`);
+}
+
+function* loadposts(action) {
+  try {
+    const result = yield call(loadPostsAPI, action.lastId);
+    yield put({
+      type: LOAD_POSTS_SUCCESS,
+      data: result.data,
+    });
+  } catch (err) {
+    console.error(err);
+    yield put({
+      type: LOAD_POSTS_FAILURE,
+      data: err.response.data,
+    });
+  }
+}
+
+function loadPostAPI(data) {
+  return axios.get(`/post/${data}`);
 }
 
 function* loadpost(action) {
   try {
-    const result = yield call(loadPostAPI, action.lastId);
+    const result = yield call(loadPostAPI, action.data);
+
     yield put({
       type: LOAD_POST_SUCCESS,
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: LOAD_POST_FAILURE,
-      data: err.response.data,
+      data: err.response,
+    });
+  }
+}
+function loadUserPostAPI(data, lastId) {
+  return axios.get(`/user/${data}/posts?lastId=${lastId || 0}`);
+}
+
+function* loadUserposts(action) {
+  try {
+    const result = yield call(loadUserPostAPI, action.data, action.lastId);
+
+    yield put({
+      type: LOAD_USER_POSTS_SUCCESS,
+      data: result.data,
+    });
+  } catch (err) {
+    console.error(err);
+    yield put({
+      type: LOAD_USER_POSTS_FAILURE,
+      data: err.response,
+    });
+  }
+}
+function loadHashtagPostAPI(data, lastId) {
+  return axios.get(
+    `/hashtag/${encodeURIComponent(data)}?lastId=${lastId || 0}`
+  );
+}
+
+function* loadHashtagposts(action) {
+  try {
+    const result = yield call(loadHashtagPostAPI, action.data, action.lastId);
+
+    yield put({
+      type: LOAD_HASHTAG_POSTS_SUCCESS,
+      data: result.data,
+    });
+  } catch (err) {
+    console.error(err);
+    yield put({
+      type: LOAD_HASHTAG_POSTS_FAILURE,
+      data: err.response,
     });
   }
 }
@@ -73,6 +138,7 @@ function* addpost(action) {
       data: result.data.id,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: ADD_POST_FAILURE,
       error: err.response.data,
@@ -94,6 +160,7 @@ function* uploadimages(action) {
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: UPLOAD_IMAGES_FAILURE,
       error: err.response.data,
@@ -117,6 +184,7 @@ function* removepost(action) {
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: REMOVE_POST_FAILURE,
       data: err.response.data,
@@ -136,6 +204,7 @@ function* addcomment(action) {
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: ADD_COMMENT_FAILURE,
       error: err.response.data,
@@ -155,6 +224,7 @@ function* likepost(data) {
       data: result.data,
     });
   } catch (error) {
+    console.error(error);
     yield put({
       type: LIKE_POST_FAILURE,
       error: error.response.data,
@@ -190,6 +260,7 @@ function* retweet(action) {
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: RETWEET_FAILURE,
       error: err.response.data,
@@ -201,8 +272,18 @@ function* watchAddPost() {
   yield takeLatest(ADD_POST_REQUEST, addpost);
 }
 
+function* watchLoadPosts() {
+  yield throttle(5000, LOAD_POSTS_REQUEST, loadposts);
+}
+function* watchLoadUserPosts() {
+  yield throttle(5000, LOAD_USER_POSTS_REQUEST, loadUserposts);
+}
+function* watchLoadHashtagPosts() {
+  yield throttle(5000, LOAD_HASHTAG_POSTS_REQUEST, loadHashtagposts);
+}
+
 function* watchLoadPost() {
-  yield throttle(5000, LOAD_POST_REQUEST, loadpost);
+  yield takeLatest(LOAD_POST_REQUEST, loadpost);
 }
 
 function* wathcUploadImages() {
@@ -231,6 +312,9 @@ export default function* postSaga() {
     fork(watchAddPost),
     fork(wathcUploadImages),
     fork(watchRemovePost),
+    fork(watchLoadPosts),
+    fork(watchLoadUserPosts),
+    fork(watchLoadHashtagPosts),
     fork(watchLoadPost),
     fork(watchAddComment),
     fork(watchUnlikePost),

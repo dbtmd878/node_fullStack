@@ -3,22 +3,17 @@ import { useDispatch, useSelector } from "react-redux";
 import AppLayout from "../components/AppLayout";
 import PostCard from "../components/postCard";
 import PostForm from "../components/postForm";
-import { LOAD_POST_REQUEST } from "../reducers/post";
+import { LOAD_POSTS_REQUEST } from "../reducers/post";
 import { LOAD_MY_INFO_REQUEST } from "../reducers/user";
+import { END } from "redux-saga";
+import wrapper from "../store/configureStore";
+import axios from "axios";
 
 const Home = () => {
   const { me } = useSelector((state) => state.user);
-  const { mainPosts, hasMorePosts, loadPostLoading, retweetError } =
+  const { mainPosts, hasMorePosts, loadPostsLoading, retweetError } =
     useSelector((state) => state.post);
   const dispatch = useDispatch();
-  useEffect(() => {
-    dispatch({
-      type: LOAD_MY_INFO_REQUEST,
-    });
-    dispatch({
-      type: LOAD_POST_REQUEST,
-    });
-  }, []);
 
   useEffect(() => {
     if (retweetError) {
@@ -31,10 +26,10 @@ const Home = () => {
         window.scrollY + document.documentElement.clientHeight >
         document.documentElement.scrollHeight - 700
       ) {
-        if (hasMorePosts && !loadPostLoading) {
+        if (hasMorePosts && !loadPostsLoading) {
           const lastId = mainPosts[mainPosts.length - 1]?.id;
           dispatch({
-            type: LOAD_POST_REQUEST,
+            type: LOAD_POSTS_REQUEST,
             lastId,
           });
         }
@@ -44,7 +39,7 @@ const Home = () => {
     return () => {
       window.removeEventListener("scroll", onScroll);
     };
-  }, [hasMorePosts, loadPostLoading, mainPosts]);
+  }, [hasMorePosts, loadPostsLoading, mainPosts]);
 
   return (
     <AppLayout>
@@ -55,5 +50,26 @@ const Home = () => {
     </AppLayout>
   );
 };
+
+export const getServerSideProps = wrapper.getServerSideProps(
+  (store) =>
+    async ({ req, res }) => {
+      const cookie = req ? req.headers.cookie : "";
+      axios.defaults.headers.Cookie = "";
+      if (req && cookie) {
+        axios.defaults.headers.Cookie = cookie;
+      }
+
+      store.dispatch({
+        type: LOAD_MY_INFO_REQUEST,
+      });
+      store.dispatch({
+        type: LOAD_POSTS_REQUEST,
+      });
+
+      store.dispatch(END);
+      await store.sagaTask.toPromise();
+    }
+);
 
 export default Home;
