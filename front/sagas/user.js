@@ -50,7 +50,7 @@ function* login(action) {
   } catch (err) {
     yield put({
       type: LOG_IN_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -69,7 +69,7 @@ function* logout() {
   } catch (err) {
     yield put({
       type: LOG_OUT_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -88,7 +88,7 @@ function* signup(action) {
   } catch (err) {
     yield put({
       type: SIGN_UP_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -108,7 +108,7 @@ function* follow(action) {
   } catch (err) {
     yield put({
       type: FOLLOW_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -128,7 +128,7 @@ function* unfollow(action) {
   } catch (err) {
     yield put({
       type: UNFOLLOW_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -148,7 +148,7 @@ function* loadUser(action) {
   } catch (err) {
     yield put({
       type: LOAD_USER_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -165,9 +165,10 @@ function* loadMyInfo() {
       data: result.data,
     });
   } catch (err) {
+    console.error(err);
     yield put({
       type: LOAD_MY_INFO_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }
@@ -187,7 +188,7 @@ function* changenickname(action) {
   } catch (err) {
     yield put({
       type: CHANGE_NICKNAME_FAILURE,
-      error: err.response.data,
+      error: err.response,
     });
   }
 }

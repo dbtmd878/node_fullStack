@@ -32,34 +32,6 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:userId", async (req, res, next) => {
-  try {
-    const fullUserWithoutPasswordUser = await User.findOne({
-      where: { id: req.params.userId },
-      attributes: {
-        exclude: ["password"],
-      },
-      include: [
-        { model: Post, attributes: ["id"] },
-        { model: User, as: "Followings", attributes: ["id"] },
-        { model: User, as: "Followers", attributes: ["id"] },
-      ],
-    });
-    if (fullUserWithoutPasswordUser) {
-      const data = fullUserWithoutPasswordUser.toJSON();
-      data.Posts = data.Posts.length;
-      data.Followers = data.Followers.length;
-      data.Followings = data.Followings.length;
-      res.status(200).json(data);
-    } else {
-      res.status(404).json(null);
-    }
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-});
-
 router.post("/login", isNotLoggedIn, (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) {
@@ -148,55 +120,15 @@ router.patch("/nickname", isLoggedIn, async (req, res, next) => {
   }
 });
 
-router.patch("/:userId/follow", isLoggedIn, async (req, res, next) => {
-  try {
-    const user = await User.findOne({ where: { id: req.params.userId } });
-    if (!user) {
-      return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
-    }
-    await user.addFollowers(req.user.id);
-    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-});
-
-router.delete("/:userId/unfollow", isLoggedIn, async (req, res, next) => {
-  try {
-    const user = await User.findOne({ where: { id: req.params.userId } });
-    if (!user) {
-      return res.status(403).send("팔로우를 취소할 대상을 찾지 못했습니다.");
-    }
-    await user.removeFollowers(req.user.id);
-    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-});
-
-router.delete("/follower/:userId", isLoggedIn, async (req, res, next) => {
-  try {
-    const user = await User.findOne({ where: { id: req.user.id } });
-    if (!user) {
-      return res.status(403).send("차단할 대상이 존재하지 않습니다.");
-    }
-    await user.removeFollowings(req.params.userId);
-    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-});
-
 router.get("/followers", isLoggedIn, async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { id: req.user.id } });
     if (!user) {
       return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
     }
-    const followers = await user.getFollowers();
+    const followers = await user.getFollowers({
+      limit: parseInt(req.query.limit, 10),
+    });
 
     res.status(200).json(followers);
   } catch (error) {
@@ -211,9 +143,41 @@ router.get("/followings", isLoggedIn, async (req, res, next) => {
     if (!user) {
       return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
     }
-    const followings = await user.getFollowings();
 
+    const followings = await user.getFollowings({
+      limit: parseInt(req.query.limit, 10),
+    });
+
+    console.log(followings);
     res.status(200).json(followings);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.get("/:userId", async (req, res, next) => {
+  try {
+    const fullUserWithoutPasswordUser = await User.findOne({
+      where: { id: req.params.userId },
+      attributes: {
+        exclude: ["password"],
+      },
+      include: [
+        { model: Post, attributes: ["id"] },
+        { model: User, as: "Followings", attributes: ["id"] },
+        { model: User, as: "Followers", attributes: ["id"] },
+      ],
+    });
+    if (fullUserWithoutPasswordUser) {
+      const data = fullUserWithoutPasswordUser.toJSON();
+      data.Posts = data.Posts.length;
+      data.Followers = data.Followers.length;
+      data.Followings = data.Followings.length;
+      res.status(200).json(data);
+    } else {
+      res.status(404).json(null);
+    }
   } catch (error) {
     console.error(error);
     next(error);
@@ -270,6 +234,47 @@ router.get("/:userId/posts", async (req, res, next) => {
     });
 
     res.status(200).json(posts);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.patch("/:userId/follow", isLoggedIn, async (req, res, next) => {
+  try {
+    const user = await User.findOne({ where: { id: req.params.userId } });
+    if (!user) {
+      return res.status(403).send("팔로우할 대상을 찾지 못했습니다.");
+    }
+    await user.addFollowers(req.user.id);
+    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.delete("/follower/:userId", isLoggedIn, async (req, res, next) => {
+  try {
+    const user = await User.findOne({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(403).send("차단할 대상이 존재하지 않습니다.");
+    }
+    await user.removeFollowings(req.params.userId);
+    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+router.delete("/:userId/unfollow", isLoggedIn, async (req, res, next) => {
+  try {
+    const user = await User.findOne({ where: { id: req.params.userId } });
+    if (!user) {
+      return res.status(403).send("팔로우를 취소할 대상을 찾지 못했습니다.");
+    }
+    await user.removeFollowers(req.user.id);
+    res.status(200).json({ UserId: parseInt(req.params.userId, 10) });
   } catch (error) {
     console.error(error);
     next(error);

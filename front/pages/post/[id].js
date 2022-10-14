@@ -14,6 +14,9 @@ const Post = () => {
   const router = useRouter();
   const { id } = router.query;
   const { singlePost } = useSelector((state) => state.post);
+  if (router.isFallback) {
+    return <div>로딩중...</div>;
+  }
   return (
     <AppLayout post={singlePost}>
       <Head>
@@ -41,9 +44,17 @@ const Post = () => {
   );
 };
 
-export const getServerSideProps = wrapper.getServerSideProps(
+export async function getStaticPaths() {
+  return {
+    paths: [{ params: { id: "70" } }],
+    paths: [{ params: { id: "71" } }],
+    fallback: true,
+  };
+}
+
+export const getStaticProps = wrapper.getServerSideProps(
   (store) =>
-    async ({ query, req, res }) => {
+    async ({ params, req, res }) => {
       const cookie = req ? req.headers.cookie : "";
       axios.defaults.headers.cookie = "";
       if (cookie) {
@@ -54,11 +65,31 @@ export const getServerSideProps = wrapper.getServerSideProps(
       });
       store.dispatch({
         type: LOAD_POST_REQUEST,
-        data: query.id,
+        data: params.id,
       });
       store.dispatch(END);
       await store.sagaTask.toPromise();
     }
 );
+
+// export const getServerSideProps = wrapper.getServerSideProps(
+//   (store) =>
+//     async ({ query, req, res }) => {
+//       const cookie = req ? req.headers.cookie : "";
+//       axios.defaults.headers.cookie = "";
+//       if (cookie) {
+//         axios.defaults.headers.cookie = cookie;
+//       }
+//       store.dispatch({
+//         type: LOAD_MY_INFO_REQUEST,
+//       });
+//       store.dispatch({
+//         type: LOAD_POST_REQUEST,
+//         data: query.id,
+//       });
+//       store.dispatch(END);
+//       await store.sagaTask.toPromise();
+//     }
+// );
 
 export default Post;

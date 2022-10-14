@@ -52,7 +52,7 @@ function* loadposts(action) {
     console.error(err);
     yield put({
       type: LOAD_POSTS_FAILURE,
-      data: err.response.data,
+      data: err.response,
     });
   }
 }
