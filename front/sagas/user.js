@@ -134,6 +134,7 @@ function* unfollow(action) {
 }
 
 function loadUserAPI(userId) {
+  console.log(userId);
   return axios.get(`/user/${userId}`);
 }
 

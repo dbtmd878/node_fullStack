@@ -47,14 +47,25 @@ const User = () => {
   return (
     <AppLayout>
       <Head>
-        <title>{userInfo.nickname}님의 글</title>
-        <meta name="description" content={userInfo.nickname} />
-        <meta name="og:title" content={`${userInfo.nickname}의 게시글`} />
-        <meta name="og:description" content={userInfo.nick} />
-
-        <meta name="og:image" content="http://localhost:3000/favicon.ico" />
-        <link rel="shrtcut icon" href="/favicon.ico" />
-        <meta name="og:url" content={`https://nodebird.com/user/${id}`} />
+        {userInfo ? (
+          <>
+            <title>{userInfo.nickname}님의 글</title>
+            <meta name="description" content={userInfo.nickname} />
+            <meta name="og:title" content={`${userInfo.nickname}의 게시글`} />
+            <meta name="og:description" content={userInfo.nick} />
+            <meta name="og:image" content="http://localhost:3000/favicon.ico" />
+            <link rel="shrtcut icon" href="/favicon.ico" />
+            <meta
+              name="og:url"
+              content={`https://nodebird.com/user/${id}`}
+            />{" "}
+          </>
+        ) : (
+          <>
+            <title>Node Bird</title>
+            <meta charSet="utf-8" />
+          </>
+        )}
       </Head>
       {userInfo ? (
         <Card
